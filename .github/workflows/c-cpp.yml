@@ -1,4 +1,4 @@
-name: Build Aseprite v1.0.0 (Linux)
+name: Build Aseprite v1.0.0 (Linux, legacy container)
 
 on:
   push:
@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    container: ubuntu:16.04
 
     steps:
       - name: Checkout repository
@@ -18,23 +19,21 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            g++ cmake ninja-build \
+          apt-get update
+          apt-get install -y \
+            g++ make cmake git \
             libx11-dev libxcursor-dev
 
       - name: Configure CMake
         run: |
           mkdir -p build
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_FLAGS="-std=c++14 -fpermissive -Wno-register" \
-            ..
+          cmake -DCMAKE_BUILD_TYPE=Release ..
 
       - name: Build
         run: |
           cd build
-          ninja aseprite
+          make aseprite -j$(nproc)
 
       - name: Package build
         run: |
