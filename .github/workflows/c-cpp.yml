@@ -47,14 +47,21 @@ jobs:
                 exit 1
               fi
 
-              test -f bin/aseprite || { echo 'ERROR: binary bin/aseprite not found after successful make'; ls -la bin/ 2>/dev/null; exit 1; }
-              echo '=== Build succeeded, binary present ==='
+              echo '=== Locating aseprite binary ==='
+              find /work/build -maxdepth 4 -type f -name 'aseprite' -exec ls -la {} \;
             "
 
       - name: Package build
         run: |
           mkdir -p artifact
-          cp -r build/bin/* artifact/
+          BIN=$(find build -maxdepth 4 -type f -name 'aseprite' -executable | head -n1)
+          if [ -z "$BIN" ]; then
+            echo "ERROR: aseprite binary not found anywhere under build/"
+            find build -maxdepth 4 -type f
+            exit 1
+          fi
+          echo "Found binary at: $BIN"
+          cp "$BIN" artifact/
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
