@@ -23,7 +23,7 @@ jobs:
             g++ cmake ninja-build \
             libx11-dev libxcursor-dev
 
-      - name: Patch Allegro alcompat.h (fix fadd/fsub/fmul/fdiv/fsqrt conflict)
+      - name: Patch Allegro alcompat.h (disable fixed-point aliases in C++ mode)
         run: |
           python3 - <<'EOF'
           path = "src/allegro/include/allegro/alcompat.h"
@@ -31,32 +31,22 @@ jobs:
               content = f.read()
           old = content
 
-          replacements = [
-              ("AL_ALIAS(fixed fadd(fixed x, fixed y), fixadd(x, y))",
-               "#if !defined(fadd)\nAL_ALIAS(fixed fadd(fixed x, fixed y), fixadd(x, y))\n#endif"),
-              ("AL_ALIAS(fixed fsub(fixed x, fixed y), fixsub(x, y))",
-               "#if !defined(fsub)\nAL_ALIAS(fixed fsub(fixed x, fixed y), fixsub(x, y))\n#endif"),
-              ("AL_ALIAS(fixed fmul(fixed x, fixed y), fixmul(x, y))",
-               "#if !defined(fmul)\nAL_ALIAS(fixed fmul(fixed x, fixed y), fixmul(x, y))\n#endif"),
-              ("AL_ALIAS(fixed fdiv(fixed x, fixed y), fixdiv(x, y))",
-               "#if !defined(fdiv)\nAL_ALIAS(fixed fdiv(fixed x, fixed y), fixdiv(x, y))\n#endif"),
-              ("AL_ALIAS(fixed fsqrt(fixed x), fixsqrt(x))",
-               "#if !defined(fsqrt)\nAL_ALIAS(fixed fsqrt(fixed x), fixsqrt(x))\n#endif"),
-          ]
+          first = "AL_ALIAS(fixed fadd(fixed x, fixed y), fixadd(x, y))"
+          last  = "AL_ALIAS(fixed fsqrt(fixed x), fixsqrt(x))"
 
-          for old_str, new_str in replacements:
-              if old_str in content:
-                  content = content.replace(old_str, new_str)
-              else:
-                  print(f"WARNING: pattern not found: {old_str}")
+          if first not in content or last not in content:
+              raise SystemExit("Expected AL_ALIAS lines not found — dump file content to debug")
+
+          content = content.replace(first, "#ifndef __cplusplus\n" + first)
+          content = content.replace(last, last + "\n#endif")
 
           if content == old:
-              raise SystemExit("No patterns matched — check exact text in alcompat.h")
+              raise SystemExit("No changes applied")
 
           with open(path, "w") as f:
               f.write(content)
 
-          print("Patch applied successfully.")
+          print("Patch applied: wrapped fadd..fsqrt aliases in #ifndef __cplusplus")
           EOF
 
       - name: Configure CMake
