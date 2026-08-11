@@ -25,11 +25,30 @@ jobs:
             bash -c "
               set -e
               apt-get update
-              apt-get install -y g++ make cmake git libx11-dev libxcursor-dev
+              apt-get install -y \
+                g++ make cmake git \
+                libx11-dev libxcursor-dev \
+                libfreetype6-dev libpng-dev libjpeg-dev zlib1g-dev \
+                libgif-dev libtiff-dev
+
               mkdir -p build
               cd build
-              cmake -DCMAKE_BUILD_TYPE=Release ..
-              make aseprite -j\$(nproc)
+
+              echo '=== Running CMake ==='
+              cmake -DCMAKE_BUILD_TYPE=Release .. || { echo '--- CMakeError.log ---'; cat CMakeFiles/CMakeError.log 2>/dev/null; exit 1; }
+
+              echo '=== Running make ==='
+              make aseprite -j\$(nproc) 2>&1 | tee build.log
+              BUILD_EXIT=\${PIPESTATUS[0]}
+
+              if [ \$BUILD_EXIT -ne 0 ]; then
+                echo '--- Build failed, last 150 lines of log ---'
+                tail -150 build.log
+                exit 1
+              fi
+
+              test -f bin/aseprite || { echo 'ERROR: binary bin/aseprite not found after successful make'; ls -la bin/ 2>/dev/null; exit 1; }
+              echo '=== Build succeeded, binary present ==='
             "
 
       - name: Package build
