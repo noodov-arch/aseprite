@@ -9,7 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: ubuntu:16.04
 
     steps:
       - name: Checkout repository
@@ -17,23 +16,21 @@ jobs:
         with:
           ref: v1.0.0
 
-      - name: Install dependencies
+      - name: Build inside Ubuntu 16.04 container
         run: |
-          apt-get update
-          apt-get install -y \
-            g++ make cmake git \
-            libx11-dev libxcursor-dev
-
-      - name: Configure CMake
-        run: |
-          mkdir -p build
-          cd build
-          cmake -DCMAKE_BUILD_TYPE=Release ..
-
-      - name: Build
-        run: |
-          cd build
-          make aseprite -j$(nproc)
+          docker run --rm \
+            -v "${{ github.workspace }}:/work" \
+            -w /work \
+            ubuntu:16.04 \
+            bash -c "
+              set -e
+              apt-get update
+              apt-get install -y g++ make cmake git libx11-dev libxcursor-dev
+              mkdir -p build
+              cd build
+              cmake -DCMAKE_BUILD_TYPE=Release ..
+              make aseprite -j\$(nproc)
+            "
 
       - name: Package build
         run: |
