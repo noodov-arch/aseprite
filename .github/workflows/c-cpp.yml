@@ -23,37 +23,13 @@ jobs:
             g++ cmake ninja-build \
             libx11-dev libxcursor-dev
 
-      - name: Patch Allegro alcompat.h (disable fixed-point aliases in C++ mode)
-        run: |
-          python3 - <<'EOF'
-          path = "src/allegro/include/allegro/alcompat.h"
-          with open(path) as f:
-              content = f.read()
-          old = content
-
-          first = "AL_ALIAS(fixed fadd(fixed x, fixed y), fixadd(x, y))"
-          last  = "AL_ALIAS(fixed fsqrt(fixed x), fixsqrt(x))"
-
-          if first not in content or last not in content:
-              raise SystemExit("Expected AL_ALIAS lines not found — dump file content to debug")
-
-          content = content.replace(first, "#ifndef __cplusplus\n" + first)
-          content = content.replace(last, last + "\n#endif")
-
-          if content == old:
-              raise SystemExit("No changes applied")
-
-          with open(path, "w") as f:
-              f.write(content)
-
-          print("Patch applied: wrapped fadd..fsqrt aliases in #ifndef __cplusplus")
-          EOF
-
       - name: Configure CMake
         run: |
           mkdir -p build
           cd build
-          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release ..
+          cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_CXX_FLAGS="-fpermissive -std=gnu++14 -Wno-register" \
+            ..
 
       - name: Build
         run: |
