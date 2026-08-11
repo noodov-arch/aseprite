@@ -28,7 +28,7 @@ jobs:
           mkdir -p build
           cd build
           cmake -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_CXX_FLAGS="-fpermissive -std=gnu++14 -Wno-register" \
+            -DCMAKE_CXX_FLAGS="-std=c++14 -fpermissive -Wno-register" \
             ..
 
       - name: Build
